@@ -1,0 +1,263 @@
+{% extends 'core/base.html' %}
+
+{% block header_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Premium Welcoming Hero Banner -->
+<div class="premium-hero animate-fade-in-up stagger-1">
+  <div class="premium-hero-badge">
+    <i data-lucide="sparkles" style="width: 12px; height: 12px; color: #fbbf24;"></i>
+    <span>Competitive Programming Brain</span>
+  </div>
+  <h1 class="premium-hero-title">
+    Welcome to <span>CodeVault</span>
+  </h1>
+  <p class="premium-hero-desc">
+    Your premium workspace for mastering algorithms, documenting core data structures, recording edge-case bugs, and organizing competitive programming solutions.
+  </p>
+</div>
+
+<!-- Premium Statistic Cards -->
+<div class="premium-stats-grid animate-fade-in-up stagger-2">
+  
+  <div class="premium-stat-card">
+    <div class="stat-info">
+      <h4>Solved Problems</h4>
+      <p>{{ total_problems }}</p>
+    </div>
+    <div class="stat-icon stat-icon-blue">
+      <i data-lucide="cpu"></i>
+    </div>
+  </div>
+
+  <div class="premium-stat-card">
+    <div class="stat-info">
+      <h4>Algorithms Directory</h4>
+      <p>{{ total_templates }}</p>
+    </div>
+    <div class="stat-icon stat-icon-purple">
+      <i data-lucide="code"></i>
+    </div>
+  </div>
+
+  <div class="premium-stat-card">
+    <div class="stat-info">
+      <h4>Theory Notes</h4>
+      <p>{{ total_notes }}</p>
+    </div>
+    <div class="stat-icon stat-icon-emerald">
+      <i data-lucide="file-text"></i>
+    </div>
+  </div>
+
+  <div class="premium-stat-card">
+    <div class="stat-info">
+      <h4>Mistakes Logged</h4>
+      <p>{{ total_mistakes }}</p>
+    </div>
+    <div class="stat-icon stat-icon-rose">
+      <i data-lucide="shield-alert"></i>
+    </div>
+  </div>
+
+</div>
+
+<!-- Content Split Layout -->
+<div class="dashboard-grid-split animate-fade-in-up stagger-3">
+  
+  <!-- Left Side: Featured Topics list -->
+  <div class="card">
+    <div class="premium-panel-header">
+      <h3 class="premium-panel-title">
+        <i data-lucide="layers" style="color: var(--primary);"></i>
+        <span>Featured Core Topics</span>
+      </h3>
+      <a href="{% url 'topics' %}" class="premium-panel-link">
+        <span>Explore All</span>
+        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+      </a>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px;">
+      {% for t in topics %}
+        <a href="{% url 'topic_detail' t.id %}" style="display: flex; flex-direction: column; background: rgba(255,255,255,0.01); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; text-decoration: none; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--primary)'; this.style.backgroundColor='rgba(59, 130, 246, 0.02)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.backgroundColor='rgba(255, 255, 255, 0.01)';">
+          <h4 style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 6px;">{{ t.title }}</h4>
+          <p style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; flex: 1; margin-bottom: 12px;">{{ t.description|truncatewords:12 }}</p>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.7rem; font-family: var(--font-mono); color: var(--text-muted); border-top: 1px dashed var(--border-color); padding-top: 8px;">
+            <span>{{ t.difficulty }}</span>
+            <span style="color: var(--primary); font-weight: 600;">LEARN</span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Right Side: Contest Progress Tracker -->
+  <div class="card">
+    <div class="premium-panel-header">
+      <h3 class="premium-panel-title">
+        <i data-lucide="pie-chart" style="color: var(--success);"></i>
+        <span>Contest Solves</span>
+      </h3>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+        <span style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--success);"></span>
+          Solved
+        </span>
+        <strong style="color: #fff; font-family: var(--font-mono);">{{ solved_count }}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+        <span style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--warning);"></span>
+          Attempted
+        </span>
+        <strong style="color: #fff; font-family: var(--font-mono);">{{ attempted_count }}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+        <span style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--danger);"></span>
+          To Do
+        </span>
+        <strong style="color: #fff; font-family: var(--font-mono);">{{ todo_count }}</strong>
+      </div>
+    </div>
+
+    <!-- Multi-Segment Progress Bar -->
+    {% if total_problems > 0 %}
+      <div style="display: flex; width: 100%; height: 10px; border-radius: 999px; overflow: hidden; background: #111827; margin-bottom: 12px;">
+        <div style="width: calc({{ solved_count }} / {{ total_problems }} * 100%); background-color: var(--success);" title="Solved"></div>
+        <div style="width: calc({{ attempted_count }} / {{ total_problems }} * 100%); background-color: var(--warning);" title="Attempted"></div>
+        <div style="width: calc({{ todo_count }} / {{ total_problems }} * 100%); background-color: var(--danger);" title="To Do"></div>
+      </div>
+      <p style="text-align: center; font-size: 0.725rem; font-family: var(--font-mono); color: var(--text-secondary);">
+        Solve Accuracy: <span style="color: var(--success); font-weight: 700;">{% widthratio solved_count total_problems 100 %}%</span>
+      </p>
+    {% else %}
+      <div style="width: 100%; height: 10px; border-radius: 999px; background: #111827; display: flex; align-items: center; justify-content: center; margin-bottom: 12px;"></div>
+      <p style="text-align: center; font-size: 0.7rem; color: var(--text-muted);">No problems recorded yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Roadmap / Timeline Section -->
+<div class="card animate-fade-in-up stagger-4" style="margin-bottom: 28px;">
+  <div class="premium-panel-header" style="margin-bottom: 20px;">
+    <h3 class="premium-panel-title">
+      <i data-lucide="map" style="color: var(--warning);"></i>
+      <span>Algorithms Master Timeline</span>
+    </h3>
+  </div>
+  
+  <div class="roadmap-timeline">
+    
+    <div class="roadmap-node completed">
+      <span class="roadmap-bullet"></span>
+      <div class="roadmap-header">
+        <h4 class="roadmap-title">Phase 1: Basic Math & Modular Foundations</h4>
+        <span class="badge badge-green">Completed</span>
+      </div>
+      <p class="roadmap-desc">
+        Master baseline modular arithmetic, Binary Exponentiation, Prime Sieves, GCD/LCM optimizations, and prime factorizations.
+      </p>
+    </div>
+
+    <div class="roadmap-node active">
+      <span class="roadmap-bullet"></span>
+      <div class="roadmap-header">
+        <h4 class="roadmap-title">Phase 2: Segment Trees & Range Query Structures</h4>
+        <span class="badge badge-blue">Active Progress</span>
+      </div>
+      <p class="roadmap-desc">
+        Focusing on dynamic range calculations, range updates, Lazy propagation, Fenwick Trees, Sparse Tables, and point mutation handling.
+      </p>
+    </div>
+
+    <div class="roadmap-node">
+      <span class="roadmap-bullet"></span>
+      <div class="roadmap-header">
+        <h4 class="roadmap-title">Phase 3: Advanced Optimization & Graph Flow</h4>
+        <span class="badge badge-purple" style="opacity: 0.5;">Locked</span>
+      </div>
+      <p class="roadmap-desc">
+        Digit dynamic programming, bitmask DP, Tree Diameter, Lowest Common Ancestor (LCA) algorithms, and Network Flows.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- Bottom Row: Popular Algorithms & Recent Log entries -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="md:grid-cols-2 grid-cols-1 animate-fade-in-up stagger-5">
+  
+  <!-- Left Column: Popular Algorithms -->
+  <div class="card">
+    <div class="premium-panel-header">
+      <h3 class="premium-panel-title">
+        <i data-lucide="code" style="color: var(--primary);"></i>
+        <span>Popular Algorithms</span>
+      </h3>
+      <a href="{% url 'templates' %}" class="premium-panel-link">View All</a>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+      {% if templates %}
+        {% for tp in templates %}
+          <div style="background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <a href="{% url 'template_detail' tp.id %}" style="font-size: 0.85rem; font-weight: 600; color: #fff; text-decoration: none;" class="hover:underline">{{ tp.title }}</a>
+              <p style="font-size: 0.725rem; color: var(--text-secondary); margin-top: 4px;">Time Complexity: {{ tp.complexity_time }}</p>
+            </div>
+            <button onclick="copyToClipboard(`{{ tp.code|escapejs }}`)" class="code-copy-btn" title="Copy Code">
+              <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+            </button>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 20px 0;">No templates logged yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Column: Recent Activities Log -->
+  <div class="card">
+    <div class="premium-panel-header">
+      <h3 class="premium-panel-title">
+        <i data-lucide="activity" style="color: var(--success);"></i>
+        <span>Recent Activities</span>
+      </h3>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+      {% if recent_activities %}
+        {% for act in recent_activities %}
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                {% if act.type == 'Note Saved' %}
+                  <i data-lucide="file-text" style="width: 12px; height: 12px; color: var(--purple);"></i>
+                {% else %}
+                  <i data-lucide="cpu" style="width: 12px; height: 12px; color: var(--success);"></i>
+                {% endif %}
+              </div>
+              <div>
+                <a href="{{ act.url }}" style="font-size: 0.825rem; font-weight: 600; color: #fff; text-decoration: none;" class="hover:underline">{{ act.title }}</a>
+                <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;">{{ act.type }} • {{ act.topic }}</p>
+              </div>
+            </div>
+            <span style="font-size: 0.7rem; font-family: var(--font-mono); color: var(--text-muted);">{{ act.time }}</span>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align: center; padding: 30px 0; color: var(--text-muted);">
+          <p style="font-size: 0.75rem;">No activities logged yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

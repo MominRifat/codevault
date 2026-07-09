@@ -1,0 +1,416 @@
+{% extends 'core/base.html' %}
+
+{% block header_title %}Competitive Programming Problems Log{% endblock %}
+
+{% block content %}
+<div class="filters-header">
+  <div class="filter-controls">
+    <!-- Topic Filter -->
+    <select class="filter-select" id="topic-filter" onchange="applyFilters()">
+      <option value="">All Topics</option>
+      {% for t in topics %}
+        <option value="{{ t.id }}" {% if selected_topic_id == t.id %}selected{% endif %}>{{ t.title }}</option>
+      {% endfor %}
+    </select>
+
+    <!-- Platform Filter -->
+    <select class="filter-select" id="platform-filter" onchange="applyFilters()">
+      <option value="">All Platforms</option>
+      <option value="LeetCode" {% if selected_platform == 'LeetCode' %}selected{% endif %}>LeetCode</option>
+      <option value="Codeforces" {% if selected_platform == 'Codeforces' %}selected{% endif %}>Codeforces</option>
+      <option value="AtCoder" {% if selected_platform == 'AtCoder' %}selected{% endif %}>AtCoder</option>
+      <option value="SPOJ" {% if selected_platform == 'SPOJ' %}selected{% endif %}>SPOJ</option>
+      <option value="HackerRank" {% if selected_platform == 'HackerRank' %}selected{% endif %}>HackerRank</option>
+      <option value="Personal Project" {% if selected_platform == 'Personal Project' %}selected{% endif %}>Personal Project</option>
+    </select>
+
+    <!-- Status Filter -->
+    <select class="filter-select" id="status-filter" onchange="applyFilters()">
+      <option value="">All Statuses</option>
+      <option value="Solved" {% if selected_status == 'Solved' %}selected{% endif %}>Solved</option>
+      <option value="Attempted" {% if selected_status == 'Attempted' %}selected{% endif %}>Attempted</option>
+      <option value="To Do" {% if selected_status == 'To Do' %}selected{% endif %}>To Do</option>
+    </select>
+
+    <!-- Search input -->
+    <form method="get" action="{% url 'problems' %}" id="search-form" style="display: flex; gap: 8px;">
+      {% if selected_topic_id %}<input type="hidden" name="topic" value="{{ selected_topic_id }}">{% endif %}
+      {% if selected_platform %}<input type="hidden" name="platform" value="{{ selected_platform }}">{% endif %}
+      {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
+      <input type="text" name="q" class="form-control" placeholder="Search tasks..." value="{{ search_query|default:'' }}" style="padding: 6px 12px; font-size: 0.75rem; width: 180px;">
+      <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+      {% if search_query or selected_topic_id or selected_platform or selected_status %}
+        <a href="{% url 'problems' %}" class="btn btn-danger btn-sm">Reset</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if user.is_authenticated %}
+  <button class="btn btn-primary" onclick="openAddProblemModal()">
+    <i data-lucide="plus" style="width: 14px;"></i>
+    <span>Log Task Result</span>
+  </button>
+  {% endif %}
+</div>
+
+<!-- Task Cards Grid -->
+<div class="grid-2">
+  {% for prob in problems %}
+    <div class="card" style="position: relative;">
+      
+      <!-- Badges row -->
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+        <span class="badge badge-blue">{{ prob.topic.title }}</span>
+        <span class="badge {% if prob.status == 'Solved' %}badge-green{% elif prob.status == 'Attempted' %}badge-orange{% else %}badge-red{% endif %}">
+          {{ prob.status }}
+        </span>
+        <span class="badge {% if prob.difficulty == 'Easy' %}badge-green{% elif prob.difficulty == 'Medium' %}badge-orange{% else %}badge-red{% endif %}">
+          {{ prob.difficulty }}
+        </span>
+      </div>
+
+      <!-- Problem header -->
+      <h3 class="note-card-title">
+        <a href="{% url 'problem_detail' prob.id %}" style="color: inherit; text-decoration: none;" class="hover:underline">{{ prob.name }}</a>
+      </h3>
+      
+      <div style="display: flex; gap: 12px; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 16px; font-family: var(--font-mono);">
+        <span>Platform: <strong>{{ prob.platform }}</strong></span>
+        {% if prob.link %}
+          <a href="{{ prob.link }}" target="_blank" 
+            style="display: inline-flex; align-items: center; gap: 6px; 
+                    background-color: #065f46; color: #34d399; 
+                    padding: 6px 12px; border-radius: 6px; 
+                    font-size: 0.85rem; font-weight: 600; 
+                    text-decoration: none; border: 1px solid #10b981;">
+            View Challenge URL 
+            <i data-lucide="external-link" style="width: 14px; height: 14px; display: inline-block;"></i>
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Quick Explanation Summary -->
+      {% if prob.explanation %}
+        <p class="note-card-content" style="font-size: 0.8125rem; line-height: 1.5; margin-bottom: 16px;">
+          {{ prob.explanation }}
+        </p>
+      {% endif %}
+
+      <!-- Collapsible Container for Expanded view -->
+      <div id="expanded-view-{{ prob.id }}" style="display: none; border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
+        
+        <!-- Code Segment -->
+        {% if prob.my_code %}
+          <div class="code-header">
+            <span>My solution code</span>
+            <button onclick="copyToClipboard(`{{ prob.my_code|escapejs }}`, 'Solution code copied!')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 9px; font-family: var(--font-mono);">
+              <i data-lucide="copy" style="width: 10px;"></i> Copy Code
+            </button>
+          </div>
+          <pre class="code-block" style="max-height: 250px;">{{ prob.my_code }}</pre>
+        {% endif %}
+
+        <!-- Complexity details -->
+        {% if prob.time_complexity or prob.space_complexity %}
+          <div style="display: flex; gap: 16px; margin-bottom: 16px; font-family: var(--font-mono); font-size: 0.75rem;">
+            {% if prob.time_complexity %}
+              <span>Time: <strong style="color: var(--success);">{{ prob.time_complexity }}</strong></span>
+            {% endif %}
+            {% if prob.space_complexity %}
+              <span>Space: <strong style="color: var(--warning);">{{ prob.space_complexity }}</strong></span>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <!-- Mistakes/Bugs -->
+        {% if prob.mistakes %}
+          <div style="background: rgba(239, 68, 68, 0.03); border-left: 2px solid var(--danger); padding: 10px 14px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 16px; color: #fca5a5;">
+            <strong>Mistake Logged:</strong> {{ prob.mistakes }}
+          </div>
+        {% endif %}
+
+        <!-- Better solutions -->
+        {% if prob.better_solution %}
+          <div style="background: rgba(16, 185, 129, 0.03); border-left: 2px solid var(--success); padding: 10px 14px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 16px; color: #a7f3d0;">
+            <strong>Refactored/Better Solution:</strong> {{ prob.better_solution }}
+          </div>
+        {% endif %}
+
+        <!-- Resource links -->
+        {% if prob.editorial_link or prob.video_link %}
+          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            {% if prob.editorial_link %}
+              <a href="{{ prob.editorial_link }}" target="_blank" class="btn btn-secondary btn-sm" style="display: flex; gap: 4px; align-items: center;">
+                <i data-lucide="book-open" style="width: 10px;"></i> Editorial Guide
+              </a>
+            {% endif %}
+            {% if prob.video_link %}
+              <a href="{{ prob.video_link }}" target="_blank" class="btn btn-secondary btn-sm" style="display: flex; gap: 4px; align-items: center;">
+                <i data-lucide="video" style="width: 10px;"></i> Watch Walkthrough
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
+        <button class="btn btn-secondary btn-sm" onclick="toggleDetails('{{ prob.id }}')" id="toggle-btn-{{ prob.id }}">
+          <i data-lucide="chevron-down" style="width: 12px;"></i>
+          <span>Expand solution details</span>
+        </button>
+
+        <div style="display: flex; gap: 8px;">
+          {% if user.is_authenticated %}
+          <button class="btn btn-secondary btn-sm" onclick="openEditProblemModal('{{ prob.id }}', '{{ prob.name|escapejs }}', '{{ prob.topic.id }}', '{{ prob.platform|escapejs }}', '{{ prob.link|escapejs }}', '{{ prob.difficulty|escapejs }}', '{{ prob.tags|escapejs }}', '{{ prob.status|escapejs }}', '{{ prob.my_code|escapejs }}', '{{ prob.explanation|escapejs }}', '{{ prob.mistakes|escapejs }}', '{{ prob.better_solution|escapejs }}', '{{ prob.editorial_link|escapejs }}', '{{ prob.video_link|escapejs }}', '{{ prob.time_complexity|escapejs }}', '{{ prob.space_complexity|escapejs }}')">
+            <i data-lucide="edit-3" style="width: 12px;"></i>
+          </button>
+          <form action="{% url 'problem_delete' prob.id %}" method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this tracked task?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm" style="padding: 6px 10px;">
+              <i data-lucide="trash-2" style="width: 12px;"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  {% empty %}
+    <div style="text-align: center; padding: 60px 0; color: var(--text-secondary); grid-column: 1 / -1;">
+      <i data-lucide="inbox" style="width: 48px; height: 48px; margin-bottom: 12px; color: var(--text-muted);"></i>
+      <p>No tracked task logs configured yet. Add results from Frontend Mentor or LeetCode to track history!</p>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Add/Edit Problem Modal -->
+<div class="modal-overlay" id="problem-modal">
+  <div class="modal-content" style="max-width: 750px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title">Log Challenge/Task Result</h3>
+      <button class="modal-close-btn" onclick="closeProblemModal()"><i data-lucide="x"></i></button>
+    </div>
+    
+    <form id="problem-form" method="post" action="{% url 'problem_create' %}">
+      {% csrf_token %}
+      <div class="modal-body" style="padding: 20px;">
+        
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="form-name">Challenge / Task Name</label>
+            <input type="text" name="name" id="form-name" class="form-control" required placeholder="e.g. Dynamic Landing Page Grid">
+          </div>
+          <div class="form-group">
+            <label for="form-topic">Domain Topic</label>
+            <select name="topic_id" id="form-topic" class="form-control" required>
+              {% for t in topics %}
+                <option value="{{ t.id }}">{{ t.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="form-platform">Codeforces</label>
+            <select name="platform" id="form-platform" class="form-control" required>
+              <option value="Frontend Mentor">Codeforces</option>
+              <option value="LeetCode">LeetCode</option>
+              <option value="GitHub">CSES</option>
+              <option value="HackerRank">HackerRank</option>
+              <option value="Personal Project">Others</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form-link">Challenge URL</label>
+            <input type="url" name="link" id="form-link" class="form-control" placeholder="https://www.frontendmentor.io/solutions/...">
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="form-difficulty">Difficulty Level</label>
+            <select name="difficulty" id="form-difficulty" class="form-control" required>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form-status">Status</label>
+            <select name="status" id="form-status" class="form-control" required>
+              <option value="Solved">Solved</option>
+              <option value="Attempted">Attempted</option>
+              <option value="To Do">To Do</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-explanation">My Code / Solution Strategy</label>
+          <textarea name="explanation" id="form-explanation" class="form-control" rows="2" placeholder="Explain the dynamic elements, database relationships or general logic..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="form-code">My solution / HTML / CSS / Python code</label>
+          <textarea name="my_code" id="form-code" class="form-control" rows="5" placeholder="Paste actual codebase or logic blocks here..."></textarea>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="form-time">Time Complexity</label>
+            <input type="text" name="time_complexity" id="form-time" class="form-control" placeholder="e.g. O(N) or O(1)">
+          </div>
+          <div class="form-group">
+            <label for="form-space">Space Complexity</label>
+            <input type="text" name="space_complexity" id="form-space" class="form-control" placeholder="e.g. O(1) memory">
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="form-mistakes">Mistakes Made / Bugs faced</label>
+            <textarea name="mistakes" id="form-mistakes" class="form-control" rows="2" placeholder="e.g. Forgot responsive prefixes..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="form-better">Better Alternative Solutions</label>
+            <textarea name="better_solution" id="form-better" class="form-control" rows="2" placeholder="e.g. CSS Grid makes columns cleaner..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="form-editorial">Editorial URL Link</label>
+            <input type="url" name="editorial_link" id="form-editorial" class="form-control" placeholder="https://docs.microsoft.com/...">
+          </div>
+          <div class="form-group">
+            <label for="form-video">Video walkthrough link</label>
+            <input type="url" name="video_link" id="form-video" class="form-control" placeholder="https://www.youtube.com/watch?...">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-tags">Comma Separated Tags</label>
+          <input type="text" name="tags" id="form-tags" class="form-control" placeholder="e.g. Flexbox, Forms, CSS Grid">
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeProblemModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="form-submit-btn">Save Task Log</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function applyFilters() {
+    const topic = document.getElementById('topic-filter').value;
+    const platform = document.getElementById('platform-filter').value;
+    const status = document.getElementById('status-filter').value;
+    
+    const url = new URL(window.location.href);
+    if (topic) url.searchParams.set('topic', topic); else url.searchParams.delete('topic');
+    if (platform) url.searchParams.set('platform', platform); else url.searchParams.delete('platform');
+    if (status) url.searchParams.set('status', status); else url.searchParams.delete('status');
+    
+    window.location.href = url.toString();
+  }
+
+  // Handle URL triggers
+  window.addEventListener('load', () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'add') {
+      openAddProblemModal();
+    }
+  });
+
+  function toggleDetails(id) {
+    const view = document.getElementById(`expanded-view-${id}`);
+    const btn = document.getElementById(`toggle-btn-${id}`);
+    if (view.style.display === 'none') {
+      view.style.display = 'block';
+      btn.innerHTML = `<i data-lucide="chevron-up" style="width: 12px;"></i> <span>Collapse solution details</span>`;
+    } else {
+      view.style.display = 'none';
+      btn.innerHTML = `<i data-lucide="chevron-down" style="width: 12px;"></i> <span>Expand solution details</span>`;
+    }
+    lucide.createIcons();
+  }
+
+  const probModal = document.getElementById('problem-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const probForm = document.getElementById('problem-form');
+  const submitBtn = document.getElementById('form-submit-btn');
+  const integratedSection = document.getElementById('integrated-revision-section');
+
+  // Fields
+  const formName = document.getElementById('form-name');
+  const formTopic = document.getElementById('form-topic');
+  const formPlatform = document.getElementById('form-platform');
+  const formLink = document.getElementById('form-link');
+  const formDifficulty = document.getElementById('form-difficulty');
+  const formStatus = document.getElementById('form-status');
+  const formExplanation = document.getElementById('form-explanation');
+  const formCode = document.getElementById('form-code');
+  const formTime = document.getElementById('form-time');
+  const formSpace = document.getElementById('form-space');
+  const formMistakes = document.getElementById('form-mistakes');
+  const formBetter = document.getElementById('form-better');
+  const formEditorial = document.getElementById('form-editorial');
+  const formVideo = document.getElementById('form-video');
+  const formTags = document.getElementById('form-tags');
+
+  function openAddProblemModal() {
+    modalTitle.innerText = "Log Challenge/Task Result";
+    probForm.action = "{% url 'problem_create' %}";
+    submitBtn.innerText = "Save Task Log";
+
+    formName.value = "";
+    formLink.value = "";
+    formExplanation.value = "";
+    formCode.value = "";
+    formTime.value = "";
+    formSpace.value = "";
+    formMistakes.value = "";
+    formBetter.value = "";
+    formEditorial.value = "";
+    formVideo.value = "";
+    formTags.value = "";
+
+    probModal.classList.add('active');
+  }
+
+  function openEditProblemModal(id, name, topicId, platform, link, difficulty, tags, status, code, explanation, mistakes, better, editorial, video, time, space) {
+    modalTitle.innerText = "Modify Logged Task Settings";
+    probForm.action = `/problems/edit/${id}/`;
+    submitBtn.innerText = "Apply Updates";
+
+    formName.value = name;
+    formTopic.value = topicId;
+    formPlatform.value = platform;
+    formLink.value = link;
+    formDifficulty.value = difficulty;
+    formStatus.value = status;
+    formExplanation.value = explanation;
+    formCode.value = code;
+    formTime.value = time;
+    formSpace.value = space;
+    formMistakes.value = mistakes;
+    formBetter.value = better;
+    formEditorial.value = editorial;
+    formVideo.value = video;
+    formTags.value = tags;
+
+    probModal.classList.add('active');
+  }
+
+  function closeProblemModal() {
+    probModal.classList.remove('active');
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeVault | Knowledge Directory</title>
+    <link rel="stylesheet" href="{% static 'core/style.css' %}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="navbar">
+        <div class="navbar-container">
+          <a href="{% url 'dashboard' %}" class="brand">
+            <div class="brand-icon">
+              <i data-lucide="terminal"></i>
+            </div>
+            <span class="brand-text">Code<span>Vault</span></span>
+          </a>
+
+          <nav class="navbar-menu">
+            <a href="{% url 'dashboard' %}" class="nav-item {% if current_tab == 'dashboard' %}active{% endif %}">
+              <i data-lucide="layout-dashboard"></i>
+              <span>Dashboard</span>
+            </a>
+            <a href="{% url 'topics' %}" class="nav-item {% if current_tab == 'topics' %}active{% endif %}">
+              <i data-lucide="layers"></i>
+              <span>Topics</span>
+            </a>
+            <a href="{% url 'notes' %}" class="nav-item {% if current_tab == 'notes' %}active{% endif %}">
+              <i data-lucide="file-text"></i>
+              <span>Notes</span>
+            </a>
+            <a href="{% url 'templates' %}" class="nav-item {% if current_tab == 'templates' %}active{% endif %}">
+              <i data-lucide="code"></i>
+              <span>Templates</span>
+            </a>
+            {% comment %} <a href="{% url 'snippets' %}" class="nav-item {% if current_tab == 'snippets' %}active{% endif %}">
+              <i data-lucide="cpu"></i>
+              <span>Snippets</span>
+            </a> {% endcomment %}
+            <a href="{% url 'problems' %}" class="nav-item {% if current_tab == 'problems' %}active{% endif %}">
+              <i data-lucide="terminal"></i>
+              <span>Problems</span>
+            </a>
+            {% comment %} <a href="{% url 'videos' %}" class="nav-item {% if current_tab == 'videos' %}active{% endif %}">
+              <i data-lucide="video"></i>
+              <span>Videos</span>
+            </a> {% endcomment %}
+            <a href="{% url 'mistakes' %}" class="nav-item {% if current_tab == 'mistakes' %}active{% endif %}">
+              <i data-lucide="shield-alert"></i>
+              <span>Mistakes</span>
+            </a>
+          </nav>
+
+          <div class="navbar-actions">
+            {% if user.is_authenticated %}
+              <div class="user-badge">
+                <div class="user-avatar" title="{{ user.username }}">{{ user.username|slice:':2' }}</div>
+                <span class="user-name">{{ user.username }}</span>
+                <form action="{% url 'logout' %}" method="post" style="display: inline-block; margin: 0;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-signout-nav" title="Sign Out Session" onclick="return confirm('Are you sure you want to log out of CodeVault?');"><i data-lucide="log-out"></i></button>
+                </form>
+              </div>
+            {% else %}
+              <a href="{% url 'login' %}" class="btn-admin-nav" style="text-decoration: none;">
+                <i data-lucide="lock"></i>
+                <span>Admin Login</span>
+              </a>
+            {% endif %}
+          </div>
+
+          <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation"><i data-lucide="menu"></i></button>
+        </div>
+      </header>
+
+      <!-- Mobile Navigation Drawer -->
+      <div class="mobile-drawer" id="mobile-drawer">
+        <div class="drawer-header">
+          <span class="brand-text">Code<span>Vault</span></span>
+          <button class="drawer-close" id="drawer-close"><i data-lucide="x"></i></button>
+        </div>
+        <div class="drawer-body">
+          <nav class="drawer-menu">
+            <a href="{% url 'dashboard' %}" class="drawer-item {% if current_tab == 'dashboard' %}active{% endif %}">
+              <i data-lucide="layout-dashboard"></i>
+              <span>Dashboard</span>
+            </a>
+            <a href="{% url 'topics' %}" class="drawer-item {% if current_tab == 'topics' %}active{% endif %}">
+              <i data-lucide="layers"></i>
+              <span>Topics</span>
+            </a>
+            <a href="{% url 'notes' %}" class="drawer-item {% if current_tab == 'notes' %}active{% endif %}">
+              <i data-lucide="file-text"></i>
+              <span>Notes</span>
+            </a>
+            <a href="{% url 'templates' %}" class="drawer-item {% if current_tab == 'templates' %}active{% endif %}">
+              <i data-lucide="code"></i>
+              <span>Templates</span>
+            </a>
+            {% comment %} <a href="{% url 'snippets' %}" class="drawer-item {% if current_tab == 'snippets' %}active{% endif %}">
+              <i data-lucide="cpu"></i>
+              <span>Snippets</span>
+            </a> {% endcomment %}
+            <a href="{% url 'problems' %}" class="drawer-item {% if current_tab == 'problems' %}active{% endif %}">
+              <i data-lucide="terminal"></i>
+              <span>Problems</span>
+            </a>
+            {% comment %} <a href="{% url 'videos' %}" class="drawer-item {% if current_tab == 'videos' %}active{% endif %}">
+              <i data-lucide="video"></i>
+              <span>Videos</span>
+            </a> {% endcomment %}
+            <a href="{% url 'mistakes' %}" class="drawer-item {% if current_tab == 'mistakes' %}active{% endif %}">
+              <i data-lucide="shield-alert"></i>
+              <span>Mistakes</span>
+            </a>
+          </nav>
+        </div>
+        <div class="drawer-footer">
+          {% if user.is_authenticated %}
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <span class="user-name" style="color: var(--text-primary); font-weight: 600;">{{ user.username }}</span>
+              <form action="{% url 'logout' %}" method="post" style="display: inline-block; margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn-signout" style="padding: 6px 12px; font-size: 11px;" onclick="return confirm('Are you sure you want to log out of CodeVault?');">
+                  <i data-lucide="log-out" style="width: 14px;"></i>
+                  <span>Sign Out</span>
+                </button>
+              </form>
+            </div>
+          {% else %}
+            <a href="{% url 'login' %}" class="btn-signout" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background: var(--primary-glow); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--primary);">
+              <i data-lucide="lock" style="width: 14px;"></i>
+              <span>Admin Login</span>
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Main Content Panel -->
+      <main class="main-panel">
+        <!-- Content Container -->
+        <div class="content-area">
+          {% block content %}
+
+          {% endblock %}
+        </div>
+      </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+      <i data-lucide="check-circle" style="color: var(--success); width: 16px; height: 16px;"></i>
+      <span id="toast-message">Copied to clipboard!</span>
+    </div>
+    <footer class="footer">
+      <div class="footer-container">
+        <div class="footer-social">
+          <a href="#" target="_blank" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+
+          <a href="#" aria-label="Email"><i class="fas fa-envelope"></i></a>
+
+          <a href="#" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+
+        <p class="footer-copy">© 2026 Momin Rifat | All Rights Reserved.</p>
+      </div>
+    </footer>
+    <script>
+      // Initialize Lucide Icons
+      lucide.createIcons()
+      
+      // Mobile Drawer controls
+      const mobileToggle = document.getElementById('mobile-nav-toggle')
+      const drawerClose = document.getElementById('drawer-close')
+      const mobileDrawer = document.getElementById('mobile-drawer')
+      
+      if (mobileToggle && mobileDrawer) {
+        mobileToggle.addEventListener('click', () => {
+          mobileDrawer.classList.add('open')
+        })
+      }
+      
+      if (drawerClose && mobileDrawer) {
+        drawerClose.addEventListener('click', () => {
+          mobileDrawer.classList.remove('open')
+        })
+      }
+      
+      // Close drawer on clicking menu items or outside
+      document.addEventListener('click', (e) => {
+        if (mobileDrawer && mobileDrawer.classList.contains('open')) {
+          if (!mobileDrawer.contains(e.target) && !mobileToggle.contains(e.target)) {
+            mobileDrawer.classList.remove('open')
+          }
+        }
+      })
+      
+      // Helper function for copy to clipboard
+      function copyToClipboard(text, message = 'Copied to clipboard!') {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            const toast = document.getElementById('toast')
+            const toastMsg = document.getElementById('toast-message')
+            toastMsg.innerText = message
+            toast.classList.add('show')
+            setTimeout(() => {
+              toast.classList.remove('show')
+            }, 2000)
+          })
+          .catch((err) => {
+            console.error('Failed to copy: ', err)
+          })
+      }
+    </script>
+    {% block scripts %}
+
+    {% endblock %}
+  </body>
+</html>

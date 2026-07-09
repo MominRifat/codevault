@@ -1,0 +1,299 @@
+{% extends 'core/base.html' %}
+
+{% block header_title %}Tutorial Guides{% endblock %}
+
+{% block content %}
+<div class="filters-header">
+  <div class="filter-controls">
+    <!-- Topic Filter -->
+    <select class="filter-select" id="topic-filter" onchange="filterTopic(this.value)">
+      <option value="">All Topics</option>
+      {% for t in topics %}
+        <option value="{{ t.id }}" {% if selected_topic_id == t.id %}selected{% endif %}>{{ t.title }}</option>
+      {% endfor %}
+    </select>
+
+    <!-- Search Form -->
+    <form method="get" action="{% url 'videos' %}" style="display: flex; gap: 8px;">
+      {% if selected_topic_id %}
+        <input type="hidden" name="topic" value="{{ selected_topic_id }}">
+      {% endif %}
+      <input type="text" name="q" class="form-control" placeholder="Search videos..." value="{{ search_query|default:'' }}" style="padding: 6px 12px; font-size: 0.75rem; width: 200px;">
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_query or selected_topic_id %}
+        <a href="{% url 'videos' %}" class="btn btn-danger btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if user.is_authenticated %}
+  <button class="btn btn-primary" onclick="openAddVideoModal()">
+    <i data-lucide="plus" style="width: 14px;"></i>
+    <span>Link Tutorial Video</span>
+  </button>
+  {% endif %}
+</div>
+
+<!-- Video Grid Layout -->
+<div class="video-grid-layout">
+  
+  <!-- Left Side: Active Embedded Player & Note Taking -->
+  <div>
+    <div class="card" style="padding: 16px; margin-bottom: 24px;">
+      <!-- Video player container -->
+      <div class="video-player-container">
+        <iframe id="youtube-player" src="{% if videos %}/https://www.youtube.com/embed/{{ videos.0.youtube_id }}{% else %}about:blank{% endif %}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      
+      <div style="margin-top: 16px;">
+        <h3 id="active-video-title" style="font-size: 1.15rem; font-weight: 700; margin-bottom: 8px;">
+          {% if videos %}{{ videos.0.title }}{% else %}No video active{% endif %}
+        </h3>
+        <p id="active-video-desc" style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.5; white-space: pre-line;">
+          {% if videos %}{{ videos.0.description }}{% else %}Link a YouTube video to log annotations and timestamps.{% endif %}
+        </p>
+      </div>
+    </div>
+
+    <!-- Live Study Annotations -->
+    <div class="card">
+      <h3 class="section-box-title">
+        <i data-lucide="edit-3" style="color: var(--primary); width: 18px;"></i>
+        <span>Live Study Notes & Annotations</span>
+      </h3>
+      <div id="active-video-notes" style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; white-space: pre-line;">
+        {% if videos %}{{ videos.0.notes|default:"No study annotations registered for this video." }}{% else %}Log reference notes to link them with video tutorials.{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Playlist and Timestamps -->
+  <div>
+    
+    <!-- Active Video Timestamps -->
+    <div class="card" style="margin-bottom: 24px; max-height: 300px; overflow-y: auto;">
+      <h3 class="section-box-title">
+        <i data-lucide="clock" style="color: var(--warning); width: 18px;"></i>
+        <span>Interactive Video Index</span>
+      </h3>
+      <div id="timestamps-container">
+        {% if videos %}
+          {% for ts in videos.0.get_timestamps_list %}
+            <div class="timestamp-item" onclick="seekVideo('{{ videos.0.youtube_id }}', '{{ ts.time }}')">
+              <span class="timestamp-badge">{{ ts.time }}</span>
+              <span class="timestamp-label">{{ ts.label }}</span>
+            </div>
+          {% empty %}
+            <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 20px 0;">No index markers configured.</p>
+          {% endfor %}
+        {% else %}
+          <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 20px 0;">Select a tutorial card to load indices.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Video Cards Ledger -->
+    <div class="card" style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto;">
+      <h3 class="section-box-title">
+        <i data-lucide="play-circle" style="color: var(--success); width: 18px;"></i>
+        <span>Tutorial Library</span>
+      </h3>
+      
+      {% for vid in videos %}
+        <div style="background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; transition: all 0.2s ease; cursor: pointer; display: flex; flex-direction: column;" onclick="loadVideo('{{ vid.youtube_id }}', '{{ vid.title|escapejs }}', '{{ vid.description|escapejs }}', '{{ vid.notes|escapejs }}', '{{ vid.id }}')" class="video-library-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <span class="badge badge-blue" style="font-size: 8px;">{{ vid.topic.title }}</span>
+            {% if user.is_authenticated %}
+            <div style="display: flex; gap: 4px;" onclick="event.stopPropagation();">
+              <button class="btn btn-secondary btn-sm" style="padding: 2px 6px; font-size: 9px;" onclick="openEditVideoModal('{{ vid.id }}', '{{ vid.title|escapejs }}', '{{ vid.topic.id }}', '{{ vid.youtube_url|escapejs }}', '{{ vid.description|escapejs }}', '{{ vid.notes|escapejs }}', '{{ vid.timestamps|escapejs }}')">
+                <i data-lucide="edit-3" style="width: 10px;"></i>
+              </button>
+              <form action="{% url 'video_delete' vid.id %}" method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to remove this linked tutorial video?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm" style="padding: 2px 6px; font-size: 9px;">
+                  <i data-lucide="trash-2" style="width: 10px;"></i>
+                </button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
+          <h4 style="font-size: 0.8125rem; font-weight: 600; color: #fff; margin-bottom: 4px;">{{ vid.title }}</h4>
+          <span style="font-family: var(--font-mono); font-size: 9px; color: var(--text-muted);">ID: {{ vid.youtube_id }}</span>
+        </div>
+      {% empty %}
+        <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 20px 0;">No tutorial videos linked yet.</p>
+      {% endfor %}
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Add/Edit Video Modal -->
+<div class="modal-overlay" id="video-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title">Link Reference Tutorial</h3>
+      <button class="modal-close-btn" onclick="closeVideoModal()"><i data-lucide="x"></i></button>
+    </div>
+    
+    <form id="video-form" method="post" action="{% url 'video_create' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="form-title">Video Title</label>
+            <input type="text" name="title" id="form-title" class="form-control" required placeholder="e.g. Flexbox vs. CSS Grid">
+          </div>
+          <div class="form-group">
+            <label for="form-topic">Domain Topic</label>
+            <select name="topic_id" id="form-topic" class="form-control" required>
+              {% for t in topics %}
+                <option value="{{ t.id }}">{{ t.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-url">YouTube URL Link</label>
+          <input type="url" name="youtube_url" id="form-url" class="form-control" required placeholder="https://www.youtube.com/watch?v=fYq5PXgSsbE">
+        </div>
+
+        <div class="form-group">
+          <label for="form-desc">Brief Description</label>
+          <textarea name="description" id="form-desc" class="form-control" rows="2" placeholder="e.g. Masterclass by CSS Tricks..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="form-notes">Study Annotations & Notes</label>
+          <textarea name="notes" id="form-notes" class="form-control" rows="4" placeholder="Log important notes here..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="form-timestamps">Timestamp Index Markers (One per line)</label>
+          <textarea name="timestamps" id="form-timestamps" class="form-control" rows="4" placeholder="Format: MM:SS - Marker description&#10;e.g.&#10;01:30 - Core concepts&#10;05:15 - Practical styling rules"></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeVideoModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="form-submit-btn">Link Video</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function filterTopic(topicId) {
+    const url = new URL(window.location.href);
+    if (topicId) {
+      url.searchParams.set('topic', topicId);
+    } else {
+      url.searchParams.delete('topic');
+    }
+    window.location.href = url.toString();
+  }
+
+  // Loaded videos database mapping to populate timestamps dynamically in client
+  const videoTimestampsMap = {
+    {% for vid in videos %}
+      "{{ vid.id }}": [
+        {% for ts in vid.get_timestamps_list %}
+          { "time": "{{ ts.time }}", "label": "{{ ts.label|escapejs }}" },
+        {% endfor %}
+      ],
+    {% endfor %}
+  };
+
+  const player = document.getElementById('youtube-player');
+  const activeTitle = document.getElementById('active-video-title');
+  const activeDesc = document.getElementById('active-video-desc');
+  const activeNotes = document.getElementById('active-video-notes');
+  const timestampContainer = document.getElementById('timestamps-container');
+
+  function loadVideo(youtubeId, title, desc, notes, id) {
+    player.src = `https://www.youtube.com/embed/${youtubeId}`;
+    activeTitle.innerText = title;
+    activeDesc.innerText = desc || "No description provided.";
+    activeNotes.innerText = notes || "No study annotations registered for this video.";
+
+    // Load timestamps dynamically
+    timestampContainer.innerHTML = "";
+    const list = videoTimestampsMap[id] || [];
+    if (list.length > 0) {
+      list.forEach(item => {
+        const div = document.createElement('div');
+        div.className = "timestamp-item";
+        div.onclick = () => seekVideo(youtubeId, item.time);
+        div.innerHTML = `<span class="timestamp-badge">${item.time}</span> <span class="timestamp-label">${item.label}</span>`;
+        timestampContainer.appendChild(div);
+      });
+    } else {
+      timestampContainer.innerHTML = `<p style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 20px 0;">No index markers configured.</p>`;
+    }
+  }
+
+  function seekVideo(youtubeId, timeStr) {
+    // Parse time MM:SS to seconds
+    const parts = timeStr.split(':');
+    let seconds = 0;
+    if (parts.length === 2) {
+      seconds = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    } else if (parts.length === 3) {
+      seconds = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+    }
+    player.src = `https://www.youtube.com/embed/${youtubeId}?start=${seconds}&autoplay=1`;
+  }
+
+  const vidModal = document.getElementById('video-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const vidForm = document.getElementById('video-form');
+  const submitBtn = document.getElementById('form-submit-btn');
+
+  // Fields
+  const formTitle = document.getElementById('form-title');
+  const formTopic = document.getElementById('form-topic');
+  const formUrl = document.getElementById('form-url');
+  const formDesc = document.getElementById('form-desc');
+  const formNotes = document.getElementById('form-notes');
+  const formTimestamps = document.getElementById('form-timestamps');
+
+  function openAddVideoModal() {
+    modalTitle.innerText = "Link Reference Tutorial";
+    vidForm.action = "{% url 'video_create' %}";
+    submitBtn.innerText = "Link Video";
+
+    formTitle.value = "";
+    formUrl.value = "";
+    formDesc.value = "";
+    formNotes.value = "";
+    formTimestamps.value = "";
+
+    vidModal.classList.add('active');
+  }
+
+  function openEditVideoModal(id, title, topicId, url, desc, notes, timestamps) {
+    modalTitle.innerText = "Modify Video Reference";
+    vidForm.action = `/videos/edit/${id}/`;
+    submitBtn.innerText = "Apply Updates";
+
+    formTitle.value = title;
+    formTopic.value = topicId;
+    formUrl.value = url;
+    formDesc.value = desc;
+    formNotes.value = notes;
+    formTimestamps.value = timestamps;
+
+    vidModal.classList.add('active');
+  }
+
+  function closeVideoModal() {
+    vidModal.classList.remove('active');
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,211 @@
+{% extends 'core/base.html' %}
+
+{% block header_title %}Syntax Snippets{% endblock %}
+
+{% block content %}
+<div class="filters-header">
+  <div class="filter-controls">
+    <!-- Language Filter Dropdown -->
+    <select class="filter-select" id="lang-filter" onchange="filterLanguage(this.value)">
+      <option value="">All Languages</option>
+      <option value="cpp" {% if selected_lang == 'cpp' %}selected{% endif %}>C++</option>
+      <option value="c" {% if selected_lang == 'c' %}selected{% endif %}>C</option>
+      <option value="python" {% if selected_lang == 'python' %}selected{% endif %}>Python</option>
+      <option value="django" {% if selected_lang == 'django' %}selected{% endif %}>Django</option>
+      <option value="html" {% if selected_lang == 'html' %}selected{% endif %}>HTML</option>
+      <option value="css" {% if selected_lang == 'css' %}selected{% endif %}>CSS</option>
+      <option value="javascript" {% if selected_lang == 'javascript' %}selected{% endif %}>JavaScript</option>
+    </select>
+
+    <!-- Search Form -->
+    <form method="get" action="{% url 'snippets' %}" style="display: flex; gap: 8px;">
+      {% if selected_lang %}
+        <input type="hidden" name="language" value="{{ selected_lang }}">
+      {% endif %}
+      <input type="text" name="q" class="form-control" placeholder="Search snippets..." value="{{ search_query|default:'' }}" style="padding: 6px 12px; font-size: 0.75rem; width: 200px;">
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      {% if search_query or selected_lang %}
+        <a href="{% url 'snippets' %}" class="btn btn-danger btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if user.is_authenticated %}
+  <button class="btn btn-primary" onclick="openAddSnippetModal()">
+    <i data-lucide="plus" style="width: 14px;"></i>
+    <span>Add Syntax Snippet</span>
+  </button>
+  {% endif %}
+</div>
+
+<!-- Snippets Layout (Compact bento cards) -->
+<div class="grid-2">
+  {% for snip in snippets %}
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 20px;">
+      
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="badge {% if snip.language == 'python' %}badge-green{% elif snip.language == 'django' %}badge-purple{% elif snip.language == 'javascript' %}badge-orange{% else %}badge-blue{% endif %}">
+            {{ snip.language }}
+          </span>
+          <span style="font-size: 10px; font-family: var(--font-mono); color: var(--text-muted);">
+            ID: #{{ snip.id }}
+          </span>
+        </div>
+
+        <h3 class="note-card-title" style="font-size: 0.95rem; margin-top: 4px;">{{ snip.title }}</h3>
+        <p class="note-card-content" style="font-size: 0.75rem; line-height: 1.5; margin-bottom: 12px;">{{ snip.description }}</p>
+
+        <!-- Dynamic code -->
+        <div class="code-header">
+          <span>{{ snip.language }} snippet</span>
+          <button onclick="copyToClipboard(`{{ snip.code|escapejs }}`, 'Snippet copied!')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 9px; font-family: var(--font-mono);">
+            <i data-lucide="copy" style="width: 10px;"></i> Copy Code
+          </button>
+        </div>
+        <pre class="code-block" style="margin-bottom: 12px; font-size: 0.7rem; color: #a3e635;">{{ snip.code }}</pre>
+
+        <!-- Tags -->
+        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px;">
+          {% for tag in snip.get_tags_list %}
+            <span class="badge badge-blue" style="font-size: 8px; padding: 1px 4px;">{{ tag }}</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if user.is_authenticated %}
+      <div class="note-actions" style="border-top: 1px solid var(--border-color); padding-top: 10px;">
+        <button class="btn btn-secondary btn-sm" onclick="openEditSnippetModal('{{ snip.id }}', '{{ snip.title|escapejs }}', '{{ snip.language|escapejs }}', '{{ snip.code|escapejs }}', '{{ snip.description|escapejs }}', '{{ snip.tags|escapejs }}')">
+          <i data-lucide="edit-3" style="width: 10px;"></i>
+          <span>Modify</span>
+        </button>
+        <form action="{% url 'snippet_delete' snip.id %}" method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this syntax snippet?');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 11px;">
+            <i data-lucide="trash-2" style="width: 10px;"></i>
+            <span>Remove</span>
+          </button>
+        </form>
+      </div>
+      {% endif %}
+
+    </div>
+  {% empty %}
+    <div style="text-align: center; padding: 60px 0; color: var(--text-secondary); grid-column: 1 / -1;">
+      <i data-lucide="inbox" style="width: 48px; height: 48px; margin-bottom: 12px; color: var(--text-muted);"></i>
+      <p>No helper snippets configured. Add standard code snippets for easy references!</p>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Add/Edit Snippet Modal -->
+<div class="modal-overlay" id="snippet-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title">Log Helper Snippet</h3>
+      <button class="modal-close-btn" onclick="closeSnippetModal()"><i data-lucide="x"></i></button>
+    </div>
+    
+    <form id="snippet-form" method="post" action="{% url 'snippet_create' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="form-title">Snippet Title</label>
+            <input type="text" name="title" id="form-title" class="form-control" required placeholder="e.g. Django Filter Active Records">
+          </div>
+          <div class="form-group">
+            <label for="form-lang">Syntax Language</label>
+            <select name="language" id="form-lang" class="form-control" required>
+              <option value="python">Python</option>
+              <option value="django">Django</option>
+              <option value="html">HTML</option>
+              <option value="css">CSS</option>
+              <option value="javascript">JavaScript</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-code">Functional Code Snippet</label>
+          <textarea name="code" id="form-code" class="form-control" rows="6" required placeholder="class ActiveQuerySet(models.QuerySet): ..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="form-desc">Brief Description</label>
+          <input type="text" name="description" id="form-desc" class="form-control" placeholder="Filters models that are marked as active">
+        </div>
+
+        <div class="form-group">
+          <label for="form-tags">Comma-Separated Tags</label>
+          <input type="text" name="tags" id="form-tags" class="form-control" placeholder="e.g. Django, Models, QuerySet">
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeSnippetModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="form-submit-btn">Save Snippet</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function filterLanguage(lang) {
+    const url = new URL(window.location.href);
+    if (lang) {
+      url.searchParams.set('language', lang);
+    } else {
+      url.searchParams.delete('language');
+    }
+    window.location.href = url.toString();
+  }
+
+  const snippetModal = document.getElementById('snippet-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const snippetForm = document.getElementById('snippet-form');
+  const submitBtn = document.getElementById('form-submit-btn');
+
+  // Fields
+  const formTitle = document.getElementById('form-title');
+  const formLang = document.getElementById('form-lang');
+  const formCode = document.getElementById('form-code');
+  const formDesc = document.getElementById('form-desc');
+  const formTags = document.getElementById('form-tags');
+
+  function openAddSnippetModal() {
+    modalTitle.innerText = "Log Helper Snippet";
+    snippetForm.action = "{% url 'snippet_create' %}";
+    submitBtn.innerText = "Save Snippet";
+    
+    formTitle.value = "";
+    formLang.value = "python";
+    formCode.value = "";
+    formDesc.value = "";
+    formTags.value = "";
+
+    snippetModal.classList.add('active');
+  }
+
+  function openEditSnippetModal(id, title, language, code, description, tags) {
+    modalTitle.innerText = "Modify Snippet Details";
+    snippetForm.action = `/snippets/edit/${id}/`;
+    submitBtn.innerText = "Apply Updates";
+
+    formTitle.value = title;
+    formLang.value = language;
+    formCode.value = code;
+    formDesc.value = description;
+    formTags.value = tags;
+
+    snippetModal.classList.add('active');
+  }
+
+  function closeSnippetModal() {
+    snippetModal.classList.remove('active');
+  }
+</script>
+{% endblock %}

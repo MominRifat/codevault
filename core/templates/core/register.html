@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register | CodeVault</title>
+  <link rel="stylesheet" href="{% static 'core/style.css' %}">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body style="display: block;">
+
+  <div class="auth-container">
+    <div class="auth-card">
+      
+      <!-- Brand Logo -->
+      <div class="auth-logo">
+        <div class="brand-icon" style="width: 40px; height: 40px; border-radius: 10px;">
+          <i data-lucide="cpu" style="width: 22px; height: 22px;"></i>
+        </div>
+        <span class="brand-text" style="font-size: 1.5rem;">Code<span>Vault</span></span>
+      </div>
+
+      <h2 class="auth-title">Create Developer Profile</h2>
+      <p class="auth-subtitle">Provision your local study planner & code library</p>
+
+      {% if error %}
+        <div class="auth-error">
+          {{ error }}
+        </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'register' %}">
+        {% csrf_token %}
+        
+        <div class="form-group">
+          <label for="username">Pick Username</label>
+          <input type="text" name="username" id="username" class="form-control" placeholder="e.g. hackerman" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" name="email" id="email" class="form-control" placeholder="e.g. dev@domain.com" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Security Password</label>
+          <input type="password" name="password" id="password" class="form-control" placeholder="minimum 6 characters" required autocomplete="new-password">
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">Confirm Security Password</label>
+          <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="re-enter password" required autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 600; font-size: 0.875rem; border-radius: 10px; margin-top: 10px;">
+          Provision & Login
+        </button>
+      </form>
+
+      <div class="auth-link">
+        Already registered? <a href="{% url 'login' %}">Authenticate Session</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

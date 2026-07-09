@@ -30,30 +30,30 @@
               <i data-lucide="layers"></i>
               <span>Topics</span>
             </a>
-            <a href="{% url 'notes' %}" class="nav-item {% if current_tab == 'notes' %}active{% endif %}">
+            {% comment %} <a href="{% url 'notes' %}" class="nav-item {% if current_tab == 'notes' %}active{% endif %}">
               <i data-lucide="file-text"></i>
               <span>Notes</span>
             </a>
             <a href="{% url 'templates' %}" class="nav-item {% if current_tab == 'templates' %}active{% endif %}">
               <i data-lucide="code"></i>
               <span>Templates</span>
-            </a>
+            </a> {% endcomment %}
             {% comment %} <a href="{% url 'snippets' %}" class="nav-item {% if current_tab == 'snippets' %}active{% endif %}">
               <i data-lucide="cpu"></i>
               <span>Snippets</span>
             </a> {% endcomment %}
-            <a href="{% url 'problems' %}" class="nav-item {% if current_tab == 'problems' %}active{% endif %}">
+            {% comment %} <a href="{% url 'problems' %}" class="nav-item {% if current_tab == 'problems' %}active{% endif %}">
               <i data-lucide="terminal"></i>
               <span>Problems</span>
-            </a>
+            </a> {% endcomment %}
             {% comment %} <a href="{% url 'videos' %}" class="nav-item {% if current_tab == 'videos' %}active{% endif %}">
               <i data-lucide="video"></i>
               <span>Videos</span>
             </a> {% endcomment %}
-            <a href="{% url 'mistakes' %}" class="nav-item {% if current_tab == 'mistakes' %}active{% endif %}">
+            {% comment %} <a href="{% url 'mistakes' %}" class="nav-item {% if current_tab == 'mistakes' %}active{% endif %}">
               <i data-lucide="shield-alert"></i>
               <span>Mistakes</span>
-            </a>
+            </a> {% endcomment %}
           </nav>
 
           <div class="navbar-actions">
@@ -94,30 +94,30 @@
               <i data-lucide="layers"></i>
               <span>Topics</span>
             </a>
-            <a href="{% url 'notes' %}" class="drawer-item {% if current_tab == 'notes' %}active{% endif %}">
+            {% comment %} <a href="{% url 'notes' %}" class="drawer-item {% if current_tab == 'notes' %}active{% endif %}">
               <i data-lucide="file-text"></i>
               <span>Notes</span>
             </a>
             <a href="{% url 'templates' %}" class="drawer-item {% if current_tab == 'templates' %}active{% endif %}">
               <i data-lucide="code"></i>
               <span>Templates</span>
-            </a>
+            </a> {% endcomment %}
             {% comment %} <a href="{% url 'snippets' %}" class="drawer-item {% if current_tab == 'snippets' %}active{% endif %}">
               <i data-lucide="cpu"></i>
               <span>Snippets</span>
             </a> {% endcomment %}
-            <a href="{% url 'problems' %}" class="drawer-item {% if current_tab == 'problems' %}active{% endif %}">
+            {% comment %} <a href="{% url 'problems' %}" class="drawer-item {% if current_tab == 'problems' %}active{% endif %}">
               <i data-lucide="terminal"></i>
               <span>Problems</span>
-            </a>
+            </a> {% endcomment %}
             {% comment %} <a href="{% url 'videos' %}" class="drawer-item {% if current_tab == 'videos' %}active{% endif %}">
               <i data-lucide="video"></i>
               <span>Videos</span>
             </a> {% endcomment %}
-            <a href="{% url 'mistakes' %}" class="drawer-item {% if current_tab == 'mistakes' %}active{% endif %}">
+            {% comment %} <a href="{% url 'mistakes' %}" class="drawer-item {% if current_tab == 'mistakes' %}active{% endif %}">
               <i data-lucide="shield-alert"></i>
               <span>Mistakes</span>
-            </a>
+            </a> {% endcomment %}
           </nav>
         </div>
         <div class="drawer-footer">

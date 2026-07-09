@@ -34,12 +34,12 @@ ALLOWED_HOSTS = config(
 
 # CSRF Trusted Origins for Google AI Studio Cloud Run environments
 CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com",
     'https://*.run.app',
     'https://*.google.com',
     'https://*.aistudio.google.com',
     'https://ai.studio',
 ]
-
 # Allow application to be framed within Google AI Studio
 X_FRAME_OPTIONS = 'ALLOWALL'
 
@@ -145,7 +145,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
